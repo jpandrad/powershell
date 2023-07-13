@@ -1,0 +1,1 @@
+(Get-AdUser -Filter * | Where {$_.Enabled -eq "True"}).Count
