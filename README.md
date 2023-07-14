@@ -4,7 +4,9 @@
 
 
 
-(Get-ADUser -Filter * -Properties LastLogonDate | Where-Object {($_.Enabled -eq "True") -and ($_.LastLogonDate -gt (Get-Date).AddDays(-120))}).Count
-
+-------
+(Get-ADUser -Filter * -Properties LastLogonDate | Where {$_.Enabled -eq "True"} | Where-Object {$_.LastLogonDate -gt (Get-Date).AddDays(-120)}).Count
 
 (Get-ADUser -Filter * -Properties LastLogonDate | Where-Object {$_.LastLogonDate -gt (Get-Date).AddDays(-180)}).Count
+
+(Get-ADUser -Filter * -Properties LastLogonDate | Where-Object {($_.Enabled -eq "True") -and ($_.LastLogonDate -gt (Get-Date).AddDays(-120))}).Count
