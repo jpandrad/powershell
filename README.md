@@ -1,4 +1,4 @@
-Get Computers
+Get Computers:
 ```PowerShell
 Get-ADComputer -filter * -Properties * | Select Name, OperatingSystem | Export-Csv -Path "C:\temp\Computers.csv" -Delimiter ';' -NoTypeInformation
 ```
