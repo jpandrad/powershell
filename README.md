@@ -28,7 +28,6 @@ Number of Enabled Users:
 (Get-AdUser -Filter * | Where {$_.Enabled -eq "True"}).Count
 ```
 Number of Enabled Users -120 days:
--------
 ```PowerShell
 (Get-ADUser -Filter * -Properties LastLogonDate | Where {$_.Enabled -eq "True"} | Where-Object {$_.LastLogonDate -gt (Get-Date).AddDays(-120)}).Count
 ```
