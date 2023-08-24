@@ -41,6 +41,4 @@ Number of Enabled Users -180 days:
 (Get-ADUser -Filter * -Properties LastLogonDate | Where-Object {$_.LastLogonDate -gt (Get-Date).AddDays(-180)}).Count
 ```
 
-```
-
 
