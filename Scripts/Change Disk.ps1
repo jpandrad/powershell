@@ -1,8 +1,8 @@
 $DiskApp = (Get-CimInstance -ClassName Win32_Volume) | where {$_.Label -eq "APP"}
 $DiskApp | Set-CimInstance -Property @{DriveLetter ='E:'}
 
-$appLabel = "APP"
-$driveLetter = "E:"
+$appLabel = "DISK_LABEL"
+$driveLetter = "F:"
 
 $diskApp = (Get-CimInstance -ClassName Win32_Volume) | where {$_.Label -eq $appLabel}
 Write-Host $diskApp.driveLetter
