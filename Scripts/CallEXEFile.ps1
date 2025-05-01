@@ -8,7 +8,7 @@ param(
 )
 
 # Set path and exec file
-$pathFile = "C:\temp\runexe.ps1"
+$pathFile = "C:\path\file.exe"
 
 try {
     if (Test-Path $pathFile) {
