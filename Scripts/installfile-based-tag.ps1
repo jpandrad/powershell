@@ -9,7 +9,7 @@ param (
 )
     Write-Host "Installing $Path ..."
     Start-Process "msiexec.exe" -ArgumentList "/i `"$Path`" /quiet /norestart" -Wait
-    Write-Host "Instalação de $Path concluída.`n"
+    Write-Host "File $Path has been installed!`n"
 }
 
 # AWS Parameter to filter tag
@@ -37,7 +37,7 @@ switch ($installationType.ToLower()) {
     }
     default {
         Write-Host "Invalid Option!"
-        exit
+        exit 1
     }
 }
 
