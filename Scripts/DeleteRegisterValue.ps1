@@ -1,6 +1,6 @@
 # Define the base registry path
 $registryPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Network"
-$registryValue = "LAN"
+$registryValue = "LOCAL"
 
 # Function to recursively search and delete the registry value
 function Remove-RegistryValue {
@@ -22,7 +22,7 @@ function Remove-RegistryValue {
             if (Get-ItemProperty -Path $subkey.PSPath -Name $registryValue -ErrorAction SilentlyContinue) {
                 # Remove the "LAN" value
                 Remove-ItemProperty -Path $subkey.PSPath -Name $registryValue -Force
-                Write-Host "Removed 'LAN' value from: $($subkey.PSPath)"
+                Write-Host "Removed $registryValue value from: $($subkey.PSPath)"
             }
         }
     }
