@@ -24,6 +24,9 @@ try {
         # Configure DNS Servers
         Set-DnsClientServerAddress -InterfaceAlias $intAlias -ServerAddresses $dnsServers
     }
+
+    # Disable NetBios over TCP/IP
+    Set-ItemProperty HKLM:\SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\tcpip* -Name NetbiosOptions -Value 2
 } catch {
     Write-Error "An error occurred: $($_.Exception.Message)"
 }
