@@ -1,32 +1,42 @@
-# Define the base registry path
-$registryPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Network"
-$registryValue = "LOCAL"
+# Variables: Path and base Registry Name
+$basePath = "HKLM:\SYSTEM\CurrentControlSet\Control\Network"
+$regName = "LAN"
 
-# Function to recursively search and delete the registry value
-function Remove-RegistryValue {
+# Recursive Function for search Register "Name" with regName value.
+function Search-RegName {
     param (
         [string]$Path
     )
-
-    # Check if the current path exists
-    if (Test-Path -Path $Path) {
-        # Get all subkeys under the current path
-        $subkeys = Get-ChildItem -Path $Path
-
-        # Iterate through each subkey
-        foreach ($subkey in $subkeys) {
-            # Recursively call the function for each subkey
-            Remove-RegistryValue -Path $subkey.PSPath
-
-            # Check if the "LAN" value exists in the current subkey
-            if (Get-ItemProperty -Path $subkey.PSPath -Name $registryValue -ErrorAction SilentlyContinue) {
-                # Remove the "LAN" value
-                Remove-ItemProperty -Path $subkey.PSPath -Name $registryValue -Force
-                Write-Host "Removed $registryValue value from: $($subkey.PSPath)"
+    # Try get sub keys
+    try {
+        $subKeys = Get-ChildItem -Path $Path -ErrorAction Stop
+    } catch {
+        return
+    }
+    foreach ($key in $subKeys) {
+        try {
+            $item = Get-ItemProperty -Path $key.PSPath -ErrorAction Stop
+            if ($item.PSObject.Properties.Name -contains "Name") {
+                $nameValue = $item.Name
+                if ($nameValue -match "$regName") {
+                    Write-Host "Register $regName found in: $($key.PSPath)"
+                    # Uncomment the line bellow to remove the key
+                    # Remove-Item -Path $key.PSPath -Recurse -Force
+                }
             }
+        } catch {
+            continue
         }
+        # Recursive call in the subkeys
+        Search-RegName  -Path $key.PSPath
     }
 }
+# Execute the Function
+Search-RegName  -Path $basePath
 
-# Call the function with the base registry path
-Remove-RegistryValue -Path $registryPath
+# Rename Interface
+$interfaceName = "Ethernet"
+Rename-NetAdapter -Name "$interfaceName" -NewName "$regName"
+
+# Disable NetBios over TCP/IP
+Set-ItemProperty HKLM:\SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\tcpip* -Name NetbiosOptions -Value 2
