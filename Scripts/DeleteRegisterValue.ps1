@@ -21,7 +21,7 @@ function Search-RegName {
                 if ($nameValue -match "$regName") {
                     Write-Host "Register $regName found in: $($key.PSPath)"
                     # Uncomment the line bellow to remove the key
-                    # Remove-Item -Path $key.PSPath -Recurse -Force
+                    Remove-Item -Path $key.PSPath -Recurse -Force
                 }
             }
         } catch {
@@ -34,9 +34,21 @@ function Search-RegName {
 # Execute the Function
 Search-RegName  -Path $basePath
 
-# Rename Interface
-$interfaceName = "Ethernet"
-Rename-NetAdapter -Name "$interfaceName" -NewName "$regName"
+
+#Rename OLD Interface LAN if exist
+$oldInterface = Get-NetAdapter | where {$_.Name -like "$regName"}
+if ($oldInterface -ne $null) {
+  Rename-NetAdapter -Name "$regName" -NewName "OldInterface"
+}
+
+# Rename the new Interface to LAN
+$newInterface = Get-NetAdapter | Where-Object { $_.Name -like "Ethernet*" }
+if ($newInterface) {
+    Rename-NetAdapter -Name $newInterface.Name -NewName "LAN" -Confirm:$false
+    Write-Host "Interface Adapter '$($newInterface.Name)' renamed to 'LAN'."
+} else {
+    Write-Host "No Interface found with name starting with 'Ethernet'."
+}
 
 # Disable NetBios over TCP/IP
 Set-ItemProperty HKLM:\SYSTEM\CurrentControlSet\services\NetBT\Parameters\Interfaces\tcpip* -Name NetbiosOptions -Value 2
