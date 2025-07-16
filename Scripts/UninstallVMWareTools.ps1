@@ -2,7 +2,6 @@
 ### VMware Tools Uninstaller Script  ###
 ########################################
 # Description : This script attempts to uninstall VMware Tools using multiple methods
-
 param(
     [switch]$Force,
     [switch]$Quiet,
@@ -36,8 +35,7 @@ function Test-VMwareToolsInstalled {
     $registryPaths = @(
         "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*",
         "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
-    )
-    
+    ) 
     foreach ($path in $registryPaths) {
         $programs = Get-ItemProperty -Path $path -ErrorAction SilentlyContinue
         $vmwareTools = $programs | Where-Object { $_.DisplayName -like "*VMware Tools*" }
