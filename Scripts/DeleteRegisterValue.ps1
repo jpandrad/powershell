@@ -1,5 +1,6 @@
 # Variables: Path and base Registry Name
-$basePath = "HKLM:\SYSTEM\CurrentControlSet\Control\Network"
+$basePathCC = "HKLM:\SYSTEM\CurrentControlSet\Control\Network"
+$basePathCS = "HKLM:\SYSTEM\ControlSet001\Control\Network\"
 $regName = "LAN"
 
 # Recursive Function for search Register "Name" with regName value.
@@ -21,7 +22,7 @@ function Search-RegName {
                 if ($nameValue -match "$regName") {
                     Write-Host "Register $regName found in: $($key.PSPath)"
                     # Uncomment the line bellow to remove the key
-                    Remove-Item -Path $key.PSPath -Recurse -Force
+                    #Remove-Item -Path $key.PSPath -Recurse -Force
                 }
             }
         } catch {
@@ -32,8 +33,8 @@ function Search-RegName {
     }
 }
 # Execute the Function
-Search-RegName  -Path $basePath
-
+Search-RegName  -Path $basePathCC
+Search-RegName  -Path $basePathCS
 
 #Rename OLD Interface LAN if exist
 $oldInterface = Get-NetAdapter | where {$_.Name -like "$regName"}
