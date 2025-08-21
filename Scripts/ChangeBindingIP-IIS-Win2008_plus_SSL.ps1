@@ -58,29 +58,62 @@ if ((Get-WindowsFeature Web-Server).Installed -eq "Installed") {
                 $bindings = Get-WebBinding -Name $website.name
                 foreach ($binding in $website.bindings.Collection) {
                     # Split fields datas to use in Set-WebBinding
+                    $protocol = $binding.Protocol
                     $bindingInfo = $binding.bindingInformation
                     $parts = $bindingInfo.Split(':')
                     $IISPort = $parts[1]
                     $IISHostname = $parts[2]
+
                     # Update Binding using the new IP Address
                     if ($binding -notmatch 'https?\s*\*:?\d+:') {
-                        # Get Certificate Thumbprint
-                        $certThumbprint = Get-ChildItem IIS:\SSLbindings | where{($_.sites -eq $website.name) -and ($_.Port -eq $IISPort)} | select -ExpandProperty Thumbprint
-                        
-                        # Update Web Site using the new IPAddress
-                        Set-WebBinding -Name $website.name -BindingInformation $bindingInfo -PropertyName "IPAddress" -Value $newIPBinding
 
-                        # Validate SSL Certificate
-                        if ($IISPort -eq "443") {
-                            # Validate if there is still Thumbprint in the link, otherwise update using the old Certificate Thumbprint
-                            $ValidateThumbprint = Get-ChildItem IIS:\SSLbindings | where{($_.sites -eq $website.name) -and ($_.Port -eq $IISPort)} | select -ExpandProperty Thumbprint
-                            if ($ValidateThumbprint -eq $null) {
-                                Write-Host "Adding certification to the site ${IISHostname}..."
-                                Get-Item "Cert:\LocalMachine\My\$certThumbprint" | New-Item -Path "IIS:\SslBindings\${newIPBinding}!443!${IISHostname}"
-                                Write-Host "The certificate will be added to the site ${IISHostname}."
+                        # Update Protocol HTTP
+                        if ($protocol -ne "https" -and $IISPort -ne 443) {
+                            Write-Host "Updating IP Address, site $IISHostname, this is not a HTTPS site..."
+                            Set-WebBinding -Name $website.name -BindingInformation $bindingInfo -PropertyName "IPAddress" -Value $newIPBinding
+                            Write-Host "Updated IP Address $IISHostname."
+                        }
+
+                        # Update Binding HTTPS Protocol with SSL
+                        if ($protocol -eq "https" -and $IISPort -eq 443) {
+                            Write-Host "Binding $bindingInfo is a $protocol protocol and is running on the port $IISPort. Updating site certification..."
+
+                            # Get Certificate Thumbprint
+                            $certThumbprint = Get-ChildItem IIS:\SSLbindings | where{($_.sites -eq $website.name) -and ($_.Port -eq $IISPort)} | select -ExpandProperty Thumbprint
+                            Write-Host "Certificate Thumbprin: $certThumbprint"
+
+                            if ($IISHostname) {
+                                Write-Host "Removing Binding $website.name with $IISHostname..."
+
+                                # Update IP Address
+                                Set-WebBinding -Name $website.name -BindingInformation $bindingInfo -PropertyName "IPAddress" -Value $newIPBinding
+
+                                # Validate SSL Certificate
+                                $ValidateThumbprint = Get-ChildItem IIS:\SSLbindings | where{($_.sites -eq $website.name) -and ($_.Port -eq $IISPort)} | select -ExpandProperty Thumbprint
+                                if ($ValidateThumbprint -eq $null) {
+                                    Write-Host "Adding certification to the site $IISHostname..."
+                                    Get-Item "Cert:\LocalMachine\My\$certThumbprint" | New-Item -Path "IIS:\SslBindings\$newIPBinding!443!$IISHostname"
+                                    Write-Host "The certificate will be added to the site $IISHostname."
+                                } else {
+                                    Write-Host "Certificate is already configured on the website $IISHostname."
+                                }
                             } else {
-                                Write-Host "Certificate is already configured on the website ${IISHostname}."
-                            }
+                                Write-Host "Removing Binding $website.name..."
+                                # Remove HTTPS Binding
+                                Remove-WebBinding -Name $website.name -Protocol https -Port "443"
+
+                                # Create Binding HTTP
+                                Write-Host "Creating Binding $website.name..."
+                                New-WebBinding -Name $website.name -IPAddress $newIPBinding -Port 443 -Protocol "https"
+
+                                # Set SSL Certificate
+                                Write-Host "Adding certification to the site $IISHostname..."
+                                (Get-WebBinding -Name $website.name -Port 443 -Protocol "https").AddSslCertificate("$certThumbprint", "my")
+                                Write-Host "The certificate will be added to the site $IISHostname."
+
+                                # Clean certThumbprint variable
+                                $certThumbprint = $null
+                            }   
                         }
                     }
                 }
@@ -89,7 +122,7 @@ if ((Get-WindowsFeature Web-Server).Installed -eq "Installed") {
                 $ipList = @(Interfaces_IPV4 | Where-Object { $_.SkipAsSource -eq $true } | Select-Object -ExpandProperty IPAddress)
                 $bindingIndex = 0
                 $hostnameToIP = @{}  # Hashtable for mapper hostname -> IP
-                
+
                 # Update WebSite
                 foreach ($website in Get-Website) { 
                     $bindings = Get-WebBinding -Name $website.name
@@ -99,7 +132,7 @@ if ((Get-WindowsFeature Web-Server).Installed -eq "Installed") {
                         $parts = $bindingInfo.Split(':')
                         $IISPort = $parts[1]
                         $IISHostname = $parts[2]
-                        
+
                         # Update Binding using the new IP Address
                         if ($binding -notmatch 'https?\s*\*:?\d+:') {
                             # Get Certificate Thumbprint
@@ -116,7 +149,7 @@ if ((Get-WindowsFeature Web-Server).Installed -eq "Installed") {
                                     $hostnameToIP[$IISHostname] = $ipList[-1]
                                 }
                             }
-                        
+
                             # Uses the IP already assigned to this hostname
                             $newIP = $hostnameToIP[$IISHostname]
                             Set-WebBinding -Name $website.name -BindingInformation $bindingInfo -PropertyName "IPAddress" -Value $newIP
@@ -127,18 +160,18 @@ if ((Get-WindowsFeature Web-Server).Installed -eq "Installed") {
                                     # Get Certificate Thumbprint
                                     $certificate = Get-Item "Cert:\LocalMachine\My\$certThumbprint" -ErrorAction Stop
                                     Write-Host "Certificate found in $IISHostname : $($certificate.Subject)"
-                                    
+
                                     # Remove SSL Binding if exist
                                     $existingSSLBinding = Get-ChildItem IIS:\SslBindings | Where-Object { $_.IPAddress -eq $newIP -and $_.Port -eq 443 }
                                     if ($existingSSLBinding) {
                                         Remove-Item "IIS:\SslBindings\$newIP!443" -Force
                                         Write-Host "SSL binding updated to $newIP :443"
                                     }
-                                    
+
                                     # Validate if there is still Thumbprint in the link, otherwise update using the old Certificate Thumbprint
                                     New-Item -Path "IIS:\SslBindings\$newIP!443" -Value $certificate -Force
                                     Write-Host "Update binding to $newIP :443 with certificate $certThumbprint"
-                                    
+
                                 } catch {
                                     Write-Warning "An error occurred to update SSL $IISHostname : $($_.Exception.Message)"
                                 }
