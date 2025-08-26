@@ -48,6 +48,31 @@ function Interfaces_IPV4 {
 # Check if IIS as been installed on server
 if ((Get-WindowsFeature Web-Server).Installed -eq "Installed") {
     try {
+        # Import WebAdministration Module
+        Import-Module WebAdministration
+
+        # Backup path and file
+        $backupDir = "C:\temp\IIS-Backup_Config"
+        if (!(Test-Path $backupDir)) {
+            New-Item -Path $backupDir -ItemType Directory | Out-Null
+        }
+        $txtFile = Join-Path $backupDir "bindings-backup.txt"
+
+        # Get Bindings information and write in file
+        Get-ChildItem IIS:\Sites | ForEach-Object {
+            $siteName = $_.Name
+            Add-Content $txtFile "===== Site: $siteName ====="
+            $_.Bindings.Collection | ForEach-Object {
+                $line = "Protocol: {0} | Binding: {1}" -f $_.protocol, $_.bindingInformation
+                if ($_.certificateHash) {
+                    $line += " | CertHash: $($_.certificateHash) | Store: $($_.certificateStoreName)"
+                }
+                Add-Content $txtFile $line
+            }
+            Add-Content $txtFile "`n"
+        }
+        Write-Host "Backup finished! Salved in: $txtFile"
+
         # Count how many IP Adress exist in the server
         $IPsNumbers = (Interfaces_IPV4 | Select-Object -ExpandProperty IPAddress).Count
         if ($IPsNumbers -eq 1) {
