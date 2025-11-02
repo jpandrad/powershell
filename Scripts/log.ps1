@@ -1,45 +1,24 @@
-
-#########################
-#### Input Variables ####
-#########################
-# Timestamp format
-$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-
-# Log file and folder
-$logFile = "C:\\temp\\output.txt"
-if (-not (Test-path -Path (Split-Path -Path $logFile))) {
-    New-Item -Path (Split-Path -Path $logFile) -ItemType Directory
-}
-
-
-##############################
-#### Function for logging ####
-##############################
-function Write-Log [
+function Write-Log {
     param (
-        [String]$message
+        [string]$Message,
+        [string]$LogFile = "C:\Temp\output.log"
     )
-    $logMessage = "$timestamp - $message"
-    $logMessage | Add-Content -Path $logFile
-]
 
+    # Check directory
+    $logDir = Split-Path $LogFile -Parent
+    if (-not (Test-Path $logDir)) {
+        New-Item -Path $logDir -ItemType Directory -Force | Out-Null
+    }
 
-###########################################
-#### Structure code to output log file ####
-###########################################
-$command = Write-Host "Hello World!!!"
+    # Show the message
+    Write-Host $Message
 
-
-
-
-
-########################
-#### Log the Output ####
-########################
-# Capture the output of the command
-$output = & $command 2>1
-
-# Create a log for each line
-foreach ($line in $output) {
-    Write-Log -message $line
+    # Create a timestamp and write in the log file
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    "$timestamp - $Message" | Out-File -FilePath $LogFile -Append -Encoding utf8
 }
+
+# EXAMPLE
+Write-Log -Message "Starting execution..."
+Get-Process | Where-Object { $_.Path -eq "C:\Program Files\Notepad++\notepad++.exe" } | Stop-Process -Force
+Write-Log -Message "Finished execution..."
